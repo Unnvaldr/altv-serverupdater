@@ -4,12 +4,71 @@
 #
 # Author: Lhoerion
 #
-# Description: The following script compares SHA-1 hashes of remote and local files. If local file is missing or outdated, script automatically downloads it to script directory.
-#              Old files are preserved as *.old. Script also keep track of current branch and build. 
+# Description: The following script compares SHA-1 hashes of remote and local alt:V files. If local file is missing or outdated, script automatically downloads it to script directory.
+#              Old files are preserved as *.old. Script also keep track of current branch and build. Server start script gets created if missing.
 #
 # Run Information: This script is run manually.
 # Dependencies: coreutils, wget, >=jq_1.4
 #
+
+truncate -s 0 'update.log'
+files=()
+printAndLog() {
+	if [ "$2" = 'ERR' ]; then
+		printf "\e[91m[$(date +%T)][Error] $1\e[39m" |& tee -a 'update.log'
+	elif [ "$2" = 'WARN' ]; then
+		printf "\e[93m[$(date +%T)][Warning] $1\e[39m" |& tee -a 'update.log'
+	elif [ "$2" = 'NDAT' ]; then
+		printf "$1" |& tee -a 'update.log'
+	else
+		printf "[$(date +%T)] $1" |& tee -a 'update.log'
+	fi
+}
+validateFiles() {
+	files=()
+	for file in {'altv-server','data/vehmodels.bin','data/vehmods.bin'}
+	do
+		if [[ ! -e "./$file" || $(sha1sum "./$file" |awk '{print $1}') != $(echo "${updateData}" |jq -r ".hashList.\"$file\".hash") ]]; then
+			files+=("$file")
+		fi
+	done
+	if [ ! -e './start.sh' ]; then
+		printAndLog "Server file ./start.sh not found, creating one . . . "
+		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server' > './start.sh' && printAndLog 'done\n' 'NDAT' || printAndLog 'failed\n' 'NDAT'
+		chmod +x './start.sh' || printAndLog "[$(date +%T)][Error] Failed to add execution permissions to file ./start.sh\e[39m\n" 'ERR'
+	fi
+	if [ $localBuild -ne $remoteBuild ]; then
+    	printAndLog "Server files update is available\n"
+	elif [ "${#files[@]}" -ne 0 ]; then
+		printAndLog "Server files are invalidated/corrupted, ${#files[@]} in total\n"
+	else
+		printAndLog "Server files are up-to-date, no action required\n"
+	fi
+
+	localBuild="$remoteBuild"
+	jq -n --arg branch $localBranch --arg build $remoteBuild '{"branch":$branch,"build":$build}' > './update.cfg'
+}
+downloadFiles() {
+	if [ "${#files[@]}" -eq 0 ]; then
+		return
+	fi
+	for file in ${files[@]}
+	do
+		parentDirectory=$(dirname "$file")
+		printAndLog "Downloading file ./$file  . . . "
+		if [ -e "./$file" ]; then
+			mv "./$file" "./$file.old"
+		fi
+		wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/$file" -P "./$parentDirectory/" -q && printAndLog 'done\n' 'NDAT' || printAndLog 'failed\n' 'NDAT'
+		if [ -e "./$file.old" ]; then
+			chmod --reference="./$file.old" "./$file" || printAndLog "Failed to copy chmod to file ./$file\n" 'ERR'
+			chmod -x "./$file.old" || printAndLog "Failed to remove execution permissions from file ./$file.old\n" 'ERR'
+		else
+			chmod +x "./$file" || printAndLog "Failed to add execution permissions to file ./$file\n" 'ERR'
+		fi
+	done
+	validateFiles
+}
 
 BASEDIR=$(dirname $0)
 if [ ! -e './update.cfg' ]; then
@@ -18,63 +77,12 @@ if [ ! -e './update.cfg' ]; then
 fi
 updateCfg=$(cat './update.cfg' |jq -r '.')
 localBranch=$(echo "${updateCfg}" |jq -r '.branch')
-[[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' ]] && localBranch="stable"
-updateInfo=$(curl -s "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/update-info.json")
-remoteBuild=$(echo "${updateInfo}" |jq -r '.latestBuildNumber')
+[[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' ]] && localBranch='stable'
+updateData=$(curl -s "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/update-info.json")
+# coreclrData=$(curl -s 'https://api.github.com/repos/FabianTerhorst/coreclr-module/releases'$([[ $localBranch == 'stable' ]] && printf '/latest'))
+remoteBuild=$(echo "${updateData}" |jq -r '.latestBuildNumber')
 localBuild=$(echo "${updateCfg}" |jq -r '.build')
-[[ ! "$localBuild" =~ '^[0-9]+$' ]] && localBuild="$remoteBuild"
-printf "[$(date +%T)] Current \e[92malt:V\e[0m build \e[33m#$localBuild\e[0m, branch \e[36m$localBranch\e[0m\n"
-printf "[$(date +%T)] Latest \e[92malt:V\e[0m build \e[33m#$remoteBuild\e[0m, branch \e[36m$localBranch\e[0m\n"
+[[ ! "$localBuild" =~ ^[0-9]+$ ]] && localBuild="$remoteBuild"
 
-if [[ ! -e './altv-server' || $(sha1sum './altv-server' |awk '{print $1}') != $(echo "${updateInfo}" |jq -r '.hashList."altv-server".hash') ]]; then
-	printf "[$(date +%T)] File altv-server is outdated or missing, downloading . . . "
-	if [ -e './altv-server' ]; then
-		mv './altv-server' './altv-server.old'
-	fi
-	wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/altv-server" -P './' -q && printf 'done\n' || printf 'failed\n'
-	if [ -e './altv-server.old' ]; then
-		chmod --reference='./altv-server.old' './altv-server'
-		chmod -x './altv-server.old'
-	else
-		chmod +x './altv-server'
-		chmod -x './altv-server.old'
-	fi
-fi
-if [[ ! -e './data/vehmodels.bin' || $(sha1sum './data/vehmodels.bin' |awk '{print $1}') != $(echo "${updateInfo}" |jq -r '.hashList."data/vehmodels.bin".hash') ]]; then
-	printf "[$(date +%T)] File vehmodels.bin is outdated or missing, downloading . . . "
-	if [ -e './data/vehmodels.bin' ]; then
-		mv './data/vehmodels.bin' './data/vehmodels.bin.old'
-	else 
-		mkdir './data' -p
-	fi
-	wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/data/vehmodels.bin" -P './data' -q && printf 'done\n' || printf 'failed\n'
-	if [ -e './data/vehmodels.bin.old' ]; then
-		chmod --reference='./data/vehmodels.bin.old' './data/vehmodels.bin'
-		chmod -x './data/vehmodels.bin.old'
-	else
-		chmod +x './data/vehmodels.bin'
-		chmod -x './data/vehmodels.bin.old'
-	fi
-fi
-if [[ ! -e './data/vehmods.bin' || $(sha1sum './data/vehmods.bin' |awk '{print $1}') != $(echo "${updateInfo}" |jq -r '.hashList."data/vehmods.bin".hash') ]]; then
-	printf "[$(date +%T)] File vehmods.bin is outdated or missing, downloading . . . "
-	if [ -e './data/vehmods.bin' ]; then
-		mv './data/vehmods.bin' './data/vehmods.bin.old'
-	else 
-		mkdir './data' -p
-	fi
-	wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/data/vehmods.bin" -P './data' -q && printf 'done\n' || printf 'failed\n'
-	if [ -e './data/vehmods.bin.old' ]; then
-		chmod --reference='./data/vehmods.bin.old' './data/vehmods.bin'
-		chmod -x './data/vehmods.bin.old'
-	else
-		chmod +x './data/vehmods.bin'
-		chmod -x './data/vehmods.bin.old'
-	fi
-fi
-if [ ! -e './start.sh' ]; then
-	printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server\n' > './start.sh'
-	chmod +x './start.sh'
-fi
-
-jq -n --arg branch $localBranch --arg build $remoteBuild '{"branch":$branch,"build":$build}' > './update.cfg'
+validateFiles
+downloadFiles
