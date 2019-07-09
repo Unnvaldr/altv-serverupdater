@@ -18,7 +18,7 @@ printAndLog() {
 		printf "\e[91m[$(date +%T)][Error] $1\e[39m" |& tee -a 'update.log'
 	elif [ "$2" = 'WARN' ]; then
 		printf "\e[93m[$(date +%T)][Warning] $1\e[39m" |& tee -a 'update.log'
-	elif [ "$2" = 'NDAT' ]; then
+	elif [ "$2" = 'APP' ]; then
 		printf "$1" |& tee -a 'update.log'
 	else
 		printf "[$(date +%T)] $1" |& tee -a 'update.log'
@@ -34,7 +34,7 @@ validateFiles() {
 	done
 	if [ ! -e './start.sh' ]; then
 		printAndLog "Server file ./start.sh not found, creating one . . . "
-		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server' > './start.sh' && printAndLog 'done\n' 'NDAT' || printAndLog 'failed\n' 'NDAT'
+		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server' > './start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		chmod +x './start.sh' || printAndLog "[$(date +%T)][Error] Failed to add execution permissions to file ./start.sh\e[39m\n" 'ERR'
 	fi
 	if [ $localBuild -ne $remoteBuild ]; then
@@ -59,7 +59,7 @@ downloadFiles() {
 		if [ -e "./$file" ]; then
 			mv "./$file" "./$file.old"
 		fi
-		wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/$file" -P "./$parentDirectory/" -q && printAndLog 'done\n' 'NDAT' || printAndLog 'failed\n' 'NDAT'
+		wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/$file" -P "./$parentDirectory/" -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		if [ -e "./$file.old" ]; then
 			chmod --reference="./$file.old" "./$file" || printAndLog "Failed to copy chmod to file ./$file\n" 'ERR'
 			chmod -x "./$file.old" || printAndLog "Failed to remove execution permissions from file ./$file.old\n" 'ERR'
