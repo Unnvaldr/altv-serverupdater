@@ -34,7 +34,7 @@ validateFiles() {
 	done
 	if [ ! -e './start.sh' ]; then
 		printAndLog "Server file ./start.sh not found, creating one . . . "
-		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server' > './start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server\n' > './start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		chmod +x './start.sh' || printAndLog "[$(date +%T)][Error] Failed to add execution permissions to file ./start.sh\e[39m\n" 'ERR'
 	fi
 	if [ $localBuild -ne $remoteBuild ]; then
@@ -54,12 +54,12 @@ downloadFiles() {
 	fi
 	for file in ${files[@]}
 	do
-		parentDirectory=$(dirname "$file")
+		parentDir=$(dirname "$file")
 		printAndLog "Downloading file ./$file  . . . "
 		if [ -e "./$file" ]; then
 			mv "./$file" "./$file.old"
 		fi
-		wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/$file" -P "./$parentDirectory/" -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/$file" -P "./$parentDir/" -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		if [ -e "./$file.old" ]; then
 			chmod --reference="./$file.old" "./$file" || printAndLog "Failed to copy chmod to file ./$file\n" 'ERR'
 			chmod -x "./$file.old" || printAndLog "Failed to remove execution permissions from file ./$file.old\n" 'ERR'
@@ -70,16 +70,14 @@ downloadFiles() {
 	validateFiles
 }
 
-BASEDIR=$(dirname $0)
 if [ ! -e './update.cfg' ]; then
 	touch './update.cfg'
 	jq -n --arg branch stable '{"branch":"$branch"}' > './update.cfg'
 fi
 updateCfg=$(cat './update.cfg' |jq -r '.')
 localBranch=$(echo "${updateCfg}" |jq -r '.branch')
-[[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' ]] && localBranch='stable'
+[[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' && "$localBranch" != 'alpha' ]] && localBranch='stable'
 updateData=$(curl -s "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/update-info.json")
-# coreclrData=$(curl -s 'https://api.github.com/repos/FabianTerhorst/coreclr-module/releases'$([[ $localBranch == 'stable' ]] && printf '/latest'))
 remoteBuild=$(echo "${updateData}" |jq -r '.latestBuildNumber')
 localBuild=$(echo "${updateCfg}" |jq -r '.build')
 [[ ! "$localBuild" =~ ^[0-9]+$ ]] && localBuild="$remoteBuild"
