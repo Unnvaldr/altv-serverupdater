@@ -27,7 +27,7 @@ function printAndLog($str, $type) {
 function validateFiles() {
     $script:files.Clear();
     foreach($file in @('altv-server.exe','data/vehmodels.bin','data/vehmods.bin')) {
-        if(!(Test-Path -Path "./$file") -or ((Get-FileHash -Path "./$file" -Algorithm 'SHA1').Hash.ToLower() -ne $updateData.hashList."$file".hash)) {
+        if(!(Test-Path -Path "./$file") -or ((Get-FileHash -Path "./$file" -Algorithm 'SHA1').Hash.ToLower() -ne $updateData.hashList."$file")) {
             $script:files += $file;
         }
     }
@@ -65,7 +65,7 @@ function downloadFiles() {
             New-Item -Path "./$parentDir" -ItemType 'Directory' -Force >$null
         }
         $progressPreference = 'silentlyContinue'
-        $result=(Invoke-WebRequest -Uri "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_win32/$file" -UseBasicParsing -OutFile "./$file" -PassThru)
+        $result=(Invoke-WebRequest -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/$file" -UseBasicParsing -OutFile "./$file" -PassThru)
         if($result.StatusCode -eq 200) {
             printAndLog "done`n" 'APP'
         } else {
@@ -82,7 +82,7 @@ if(!(Test-Path './update.cfg')) {
 $updateCfg=$(Get-Content './update.cfg' | ConvertFrom-Json)
 $localBranch=$updateCfg.branch
 if(!$localBranch -or $localBranch -ne 'stable' -and $localBranch -ne 'beta' -and $localBranch -ne 'alpha') { $localBranch='stable' }
-$updateData=(Invoke-RestMethod -Uri "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_win32/update-info.json")
+$updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json")
 $remoteBuild=$updateData.latestBuildNumber
 $localBuild=$updateCfg.build
 if(!($localBuild -match '^[0-9]+$')) { $localBuild=$remoteBuild }

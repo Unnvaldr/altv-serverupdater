@@ -28,7 +28,7 @@ validateFiles() {
 	files=()
 	for file in {'altv-server','data/vehmodels.bin','data/vehmods.bin'}
 	do
-		if [[ ! -e "./$file" || $(sha1sum "./$file" |awk '{print $1}') != $(echo "${updateData}" |jq -r ".hashList.\"$file\".hash") ]]; then
+		if [[ ! -e "./$file" || $(sha1sum "./$file" |awk '{print $1}') != $(echo "${updateData}" |jq -r ".hashList.\"$file\"") ]]; then
 			files+=("$file")
 		fi
 	done
@@ -59,7 +59,7 @@ downloadFiles() {
 		if [ -e "./$file" ]; then
 			mv "./$file" "./$file.old"
 		fi
-		wget "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/$file" -P "./$parentDir/" -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		wget "https://cdn.altv.mp/server/$localBranch/x64_linux/$file" -P "./$parentDir/" -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		if [ -e "./$file.old" ]; then
 			chmod --reference="./$file.old" "./$file" || printAndLog "Failed to copy chmod to file ./$file\n" 'ERR'
 			chmod -x "./$file.old" || printAndLog "Failed to remove execution permissions from file ./$file.old\n" 'ERR'
@@ -77,7 +77,7 @@ fi
 updateCfg=$(cat './update.cfg' |jq -r '.')
 localBranch=$(echo "${updateCfg}" |jq -r '.branch')
 [[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' && "$localBranch" != 'alpha' ]] && localBranch='stable'
-updateData=$(curl -s "https://alt-cdn.s3.nl-ams.scw.cloud/server/$localBranch/x64_linux/update-info.json")
+updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json")
 remoteBuild=$(echo "${updateData}" |jq -r '.latestBuildNumber')
 localBuild=$(echo "${updateCfg}" |jq -r '.build')
 [[ ! "$localBuild" =~ ^[0-9]+$ ]] && localBuild="$remoteBuild"
