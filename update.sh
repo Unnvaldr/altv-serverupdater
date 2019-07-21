@@ -78,9 +78,13 @@ updateCfg=$(cat './update.cfg' |jq -r '.')
 localBranch=$(echo "${updateCfg}" |jq -r '.branch')
 [[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' && "$localBranch" != 'alpha' ]] && localBranch='stable'
 updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json")
+echo $updateData |jq empty 2>/dev/null
+if [ $? -ne 0 ]; then
+	printAndLog "Failed to check for update, try again later\n" 'ERR'
+	exit
+fi
 remoteBuild=$(echo "${updateData}" |jq -r '.latestBuildNumber')
 localBuild=$(echo "${updateCfg}" |jq -r '.build')
 [[ ! "$localBuild" =~ ^[0-9]+$ ]] && localBuild="$remoteBuild"
-
 validateFiles
 downloadFiles

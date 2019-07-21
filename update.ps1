@@ -82,7 +82,12 @@ if(!(Test-Path './update.cfg')) {
 $updateCfg=$(Get-Content './update.cfg' | ConvertFrom-Json)
 $localBranch=$updateCfg.branch
 if(!$localBranch -or $localBranch -ne 'stable' -and $localBranch -ne 'beta' -and $localBranch -ne 'alpha') { $localBranch='stable' }
-$updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json")
+try {
+    $updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json")
+} catch {
+    printAndLog "Failed to check for update, try again later`n" 'ERR'
+    exit
+}
 $remoteBuild=$updateData.latestBuildNumber
 $localBuild=$updateCfg.build
 if(!($localBuild -match '^[0-9]+$')) { $localBuild=$remoteBuild }
