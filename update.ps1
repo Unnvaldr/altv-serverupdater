@@ -65,7 +65,7 @@ function downloadFiles() {
             New-Item -Path "./$parentDir" -ItemType 'Directory' -Force >$null
         }
         $progressPreference = 'silentlyContinue'
-        $result=(Invoke-WebRequest -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/$file" -UseBasicParsing -OutFile "./$file" -PassThru)
+        $result=(Invoke-WebRequest -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/$file" -UserAgent 'AltPublicAgent' -UseBasicParsing  -OutFile "./$file" -PassThru)
         if($result.StatusCode -eq 200) {
             printAndLog "done`n" 'APP'
         } else {
@@ -83,7 +83,7 @@ $updateCfg=$(Get-Content './update.cfg' | ConvertFrom-Json)
 $localBranch=$updateCfg.branch
 if(!$localBranch -or $localBranch -ne 'stable' -and $localBranch -ne 'beta' -and $localBranch -ne 'alpha') { $localBranch='stable' }
 try {
-    $updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json")
+    $updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
 } catch {
     printAndLog "Failed to check for update, try again later`n" 'ERR'
     exit

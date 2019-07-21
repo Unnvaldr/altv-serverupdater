@@ -59,7 +59,10 @@ downloadFiles() {
 		if [ -e "./$file" ]; then
 			mv "./$file" "./$file.old"
 		fi
-		wget "https://cdn.altv.mp/server/$localBranch/x64_linux/$file" -P "./$parentDir/" -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		wget "https://cdn.altv.mp/server/$localBranch/x64_linux/$file" -U 'AltPublicAgent' -P "./$parentDir/" -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		if [ ! -e "./$file" ]; then
+			continue
+		fi
 		if [ -e "./$file.old" ]; then
 			chmod --reference="./$file.old" "./$file" || printAndLog "Failed to copy chmod to file ./$file\n" 'ERR'
 			chmod -x "./$file.old" || printAndLog "Failed to remove execution permissions from file ./$file.old\n" 'ERR'
@@ -77,7 +80,7 @@ fi
 updateCfg=$(cat './update.cfg' |jq -r '.')
 localBranch=$(echo "${updateCfg}" |jq -r '.branch')
 [[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' && "$localBranch" != 'alpha' ]] && localBranch='stable'
-updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json")
+updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
 echo $updateData |jq empty 2>/dev/null
 if [ $? -ne 0 ]; then
 	printAndLog "Failed to check for update, try again later\n" 'ERR'
