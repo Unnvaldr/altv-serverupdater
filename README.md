@@ -1,2 +1,2 @@
 # altV-UpdateScript
-A script written in bash on Linux to automatize alt:V server update process
+Scripts written in Bash on Linux and in PowerShell on Windows to automatize alt:V server update process
