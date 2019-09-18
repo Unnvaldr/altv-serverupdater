@@ -32,6 +32,40 @@ printAndLog() {
 		printf "[$(date +%T)] $1" |& tee -a 'update.log'
 	fi
 }
+fetchUpdateData() {
+	updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
+	echo $updateData | jq -e '.' >/dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		printAndLog "Failed to check for update, try again later\n" 'ERR'
+		exit
+	fi
+	str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
+	updateTmp=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp 
+	updateTmp2=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp2
+	updateTmp3=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp3
+	echo $updateData | jq -c "$(printf "$str" 'server')" > $updateTmp
+	updateData2=$(curl -s "https://cdn.altv.mp/node-module/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
+	echo $updateData2 | jq -e '.' >/dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		printAndLog "Failed to check for node-module update\n" 'WARN'
+	else
+		echo $updateData2 | jq -c "$(printf "$str" 'node-module')" > $updateTmp2
+		unset updateData2
+	fi
+	updateData3=$(curl -s "https://cdn.altv.mp/coreclr-module/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
+	echo $updateData3 | jq -e '.' >/dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		printAndLog "Failed to check for csharp-module update\n" 'WARN'
+	else
+		updateData3=$(echo $updateData3 | jq '.hashList |=  . + {"modules/libcsharp-module.so":"1010101010101010101010101010101010101010"}')
+		echo $updateData3 | jq -c "$(printf "$str" 'coreclr-module')" > $updateTmp3
+		unset updateData3
+	fi
+	updateData=$(jq -s '.[0].latestBuildNumber as $b | reduce .[] as $x ({}; . * $x) | .latestBuildNumber=$b' $updateTmp $updateTmp2 $updateTmp3)
+	rm $updateTmp
+	rm $updateTmp2
+	rm $updateTmp3
+}
 validateFiles() {
 	files=()
 	for file in $(echo $updateData | jq -r '.hashList | keys[]')
@@ -40,6 +74,17 @@ validateFiles() {
 			files+=("$file")
 		fi
 	done
+	if [[ ${files[*]} =~ 'modules/libcsharp-module.so' && -e 'modules/libcsharp-module.so' && ! ${files[*]} =~ 'AltV.Net.Host.dll' ]]; then
+		_files=()
+		for file in ${files[@]}
+		do
+		    if [ "$file" != 'modules/libcsharp-module.so' ]; then
+		        _files+=("$file")
+		    fi
+		done
+		files=("${_files[@]}")
+		unset _files
+	fi
 	if [ ! -e 'start.sh' ]; then
 		printAndLog "Server file start.sh not found, creating one . . . "
 		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server\n' > 'start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
@@ -64,11 +109,7 @@ downloadFiles() {
 	do
 		dlType="$(echo "${updateData}" | jq -r ".hashList.\"$file\"[1]")"
 		outDir="$(dirname $file)"
-		fileName="$(basename $file)"
-		if [[ $dlType != 'server' && $dlType != 'node-module' ]]; then
-			file="$(basename $file)"
-		fi
-		printAndLog "Downloading file $outDir/$fileName . . . "
+		printAndLog "Downloading file $file . . . "
 		if [[ "$noBackup" == 'false' && -e "$file" ]]; then
 			mv "$file" "$file.old"
 		fi
@@ -92,41 +133,7 @@ fi
 updateCfg=$(cat 'update.cfg' | jq '.')
 localBranch=$(echo "${updateCfg}" | jq -r '.branch')
 [[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' && "$localBranch" != 'alpha' ]] && localBranch='stable'
-updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
-echo $updateData | jq empty 2>/dev/null
-if [ $? -ne 0 ]; then
-	printAndLog "Failed to check for update, try again later\n" 'ERR'
-	exit
-fi
-str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"key":"%s\(.key)","value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
-updateTmp=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp 
-updateTmp2=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp2
-updateTmp3=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp3
-echo $updateData | jq -c "$(printf "$str" '' 'server')" > $updateTmp
-if [ "$localBranch" == 'beta' ]; then
-	updateData2=$(curl -s "https://cdn.altv.mp/node-module/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
-	echo $updateData2 | jq empty 2>/dev/null
-	if [ $? -ne 0 ]; then
-		printAndLog "Failed to check for update, try again later\n" 'ERR'
-		exit
-	fi
-	updateData3=$(curl -s "https://cdn.altv.mp/coreclr-module/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
-	echo $updateData3 | jq empty 2>/dev/null
-	if [ $? -ne 0 ]; then
-		printAndLog "Failed to check for update, try again later\n" 'ERR'
-		exit
-	fi
-	echo $updateData2 | jq -c "$(printf "$str" '' 'node-module')" > $updateTmp2
-	echo $updateData3 | jq -c "$(printf "$str" 'modules/' 'coreclr-module')" > $updateTmp3
-	unset updateData2
-	unset updateData3
-else
-	printAndLog "Checking for update of csharp-module and node-module is not possible yet in current branch\n" 'WARN'
-fi
-updateData=$(jq -s '.[1] * .[2] * .[0] | .hashList |= (to_entries | sort_by(.key) | from_entries) | .' $updateTmp $updateTmp2 $updateTmp3)
-rm $updateTmp
-rm $updateTmp2
-rm $updateTmp3
+fetchUpdateData
 remoteBuild=$(echo "${updateData}" | jq -r '.latestBuildNumber')
 localBuild=$(echo "${updateCfg}" | jq -r '.build')
 [[ ! "$localBuild" =~ ^[0-9]+$ ]] && localBuild=$remoteBuild
