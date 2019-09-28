@@ -12,24 +12,25 @@
 #
 
 noBackup=false
+noLogFile=false
 for arg in "$@"
 do
-	if [ $arg = '-noBackup' ]; then
+	if [ $arg = '--no-logfile' ]; then
+		noLogFile=true
+	elif [ $arg = '--no-backup' ]; then
 		noBackup=true
-		break
 	fi
 done
-truncate -s 0 'update.log'
 files=()
 printAndLog() {
 	if [ "$2" = 'ERR' ]; then
-		printf "\e[91m[$(date +%T)][Error] $1\e[39m" |& tee -a 'update.log'
+		printf "\e[91m[$(date +%T)][Error] $1\e[39m" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
 	elif [ "$2" = 'WARN' ]; then
-		printf "\e[93m[$(date +%T)][Warning] $1\e[39m" |& tee -a 'update.log'
+		printf "\e[93m[$(date +%T)][Warning] $1\e[39m" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
 	elif [ "$2" = 'APP' ]; then
-		printf "$1" |& tee -a 'update.log'
+		printf "$1" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
 	else
-		printf "[$(date +%T)] $1" |& tee -a 'update.log'
+		printf "[$(date +%T)] $1" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
 	fi
 }
 fetchUpdateData() {
@@ -87,7 +88,7 @@ validateFiles() {
 	fi
 	if [ ! -e 'start.sh' ]; then
 		printAndLog "Server file start.sh not found, creating one . . . "
-		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server\n' > 'start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server "$@"\n' > 'start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		chmod +x 'start.sh' || printAndLog "[$(date +%T)][Error] Failed to add execution permissions to file start.sh\e[39m\n" 'ERR'
 	fi
 	if [ $localBuild -ne $remoteBuild ]; then
@@ -113,7 +114,7 @@ downloadFiles() {
 		if [[ "$noBackup" == 'false' && -e "$file" ]]; then
 			mv "$file" "$file.old"
 		fi
-		wget "https://cdn.altv.mp/$dlType/$localBranch/x64_linux/$file" -U 'AltPublicAgent' -P "$outDir/" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		wget "https://cdn.altv.mp/$dlType/$localBranch/x64_linux/${file}?build=$localBuild" -U 'AltPublicAgent' -P "$outDir/" -O "$file" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		if [ ! -e "$file" ]; then
 			continue
 		fi
@@ -127,6 +128,9 @@ downloadFiles() {
 	validateFiles
 }
 
+if [ $noLogFile != true ]; then
+	truncate -s 0 'update.log'
+fi
 if [ ! -e 'update.cfg' ]; then
 	printf '{"branch":"stable"}' | jq '.' > 'update.cfg'
 fi

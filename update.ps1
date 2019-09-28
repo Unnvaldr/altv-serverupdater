@@ -10,19 +10,18 @@
 # Dependencies: >=PowerShell 5.0
 #
 
-Param([Switch]$noBackup)
-Clear-Content -Path 'update.log' 2>&1 >$null
+Param([Alias("no-logfile")][Switch]$noLogFile, [Alias("no-backup")][Switch]$noBackup)
 [System.Collections.ArrayList]$files=@()
 function printAndLog($str, $type) {
 	$date=(Get-Date -UFormat '%T')
 	if($type -eq 'ERR') {
-		"[$date][Error] $str" | Add-Content -Path 'update.log' -NoNewline -PassThru | Write-Host -NoNewline -ForegroundColor 'Red'
+		"[$date][Error] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline -ForegroundColor 'Red'
 	} elseif($type -eq 'WARN') {
-		"[$date][Warning] $str" | Add-Content -Path 'update.log' -NoNewline -PassThru | Write-Host -NoNewline -ForegroundColor 'Yellow'
+		"[$date][Warning] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline -ForegroundColor 'Yellow'
 	} elseif($type -eq 'APP') {
-		"$str" | Add-Content -Path 'update.log' -NoNewline -PassThru | Write-Host -NoNewline
+		"$str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline
 	} else {
-		"[$date] $str" | Add-Content -Path 'update.log' -NoNewline -PassThru | Write-Host -NoNewline
+		"[$date] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline
 	}
 }
 function fetchUpdateData() {
@@ -62,7 +61,7 @@ function validateFiles() {
 	}
 	if(!(Test-Path -Path "start.ps1")) {
 		printAndLog "Server file start.ps1 not found, creating one . . . "
-		$result=(New-Item -Path 'start.ps1' -Value "`$Host.UI.RawUI.BackgroundColor='black'`n`$Host.UI.RawUI.ForegroundColor='gray'`n.\altv-server.exe`n" -Force)
+		$result=(New-Item -Path 'start.ps1' -Value "`$Host.UI.RawUI.BackgroundColor='black'`n`$Host.UI.RawUI.ForegroundColor='gray'`n.\altv-server.exe `$args`n" -Force)
 		if($result) {
 			printAndLog "done`n" 'APP'
 		} else {
@@ -96,7 +95,7 @@ function downloadFiles() {
 			New-Item -Path "$outDir" -ItemType 'Directory' -Force >$null
 		}
 		$progressPreference='silentlyContinue'
-		$result=(Invoke-WebRequest -Uri "https://cdn.altv.mp/$dlType/$localBranch/x64_win32/$file" -UserAgent 'AltPublicAgent' -UseBasicParsing -OutFile "$file" -PassThru)
+		$result=(Invoke-WebRequest -Uri "https://cdn.altv.mp/$dlType/$localBranch/x64_win32/${file}?build=$localBuild" -UserAgent 'AltPublicAgent' -UseBasicParsing -OutFile "$file" -PassThru)
 		if($result.StatusCode -eq 200) {
 			printAndLog "done`n" 'APP'
 		} else {
@@ -105,6 +104,10 @@ function downloadFiles() {
 		$progressPreference='Continue'
 	}
 	validateFiles
+}
+
+if(!$noLogFile) {
+	Clear-Content -Path 'update.log' 2>&1 >$null
 }
 if(!(Test-Path 'update.cfg')) {
 	New-Item 'update.cfg'  -Force >$null
