@@ -111,11 +111,11 @@ if(!$noLogFile) {
 }
 if(!(Test-Path 'update.cfg')) {
 	New-Item 'update.cfg'  -Force >$null
-	[ordered]@{branch='stable'} | ConvertTo-Json > 'update.cfg'
+	[ordered]@{branch='release'} | ConvertTo-Json > 'update.cfg'
 }
 $updateCfg=$(Get-Content 'update.cfg' | ConvertFrom-Json)
 $localBranch=$updateCfg.branch
-if(!$localBranch -or $localBranch -ne 'stable' -and $localBranch -ne 'beta' -and $localBranch -ne 'alpha') { $localBranch='stable' }
+if(!$localBranch -or $localBranch -ne 'release' -and $localBranch -ne 'rc' -and $localBranch -ne 'dev') { $localBranch='release' }
 fetchUpdateData
 $remoteBuild=$updateData.latestBuildNumber
 $localBuild=$updateCfg.build

@@ -132,11 +132,11 @@ if [ $noLogFile != true ]; then
 	truncate -s 0 'update.log'
 fi
 if [ ! -e 'update.cfg' ]; then
-	printf '{"branch":"stable"}' | jq '.' > 'update.cfg'
+	printf '{"branch":"release"}' | jq '.' > 'update.cfg'
 fi
 updateCfg=$(cat 'update.cfg' | jq '.')
 localBranch=$(echo "${updateCfg}" | jq -r '.branch')
-[[ ! -n "$localBranch" || "$localBranch" != 'stable' && "$localBranch" != 'beta' && "$localBranch" != 'alpha' ]] && localBranch='stable'
+[[ ! -n "$localBranch" || "$localBranch" != 'release' && "$localBranch" != 'rc' && "$localBranch" != 'dev' ]] && localBranch='release'
 fetchUpdateData
 remoteBuild=$(echo "${updateData}" | jq -r '.latestBuildNumber')
 localBuild=$(echo "${updateCfg}" | jq -r '.build')
