@@ -114,7 +114,10 @@ downloadFiles() {
 		if [[ "$noBackup" == 'false' && -e "$file" ]]; then
 			mv "$file" "$file.old"
 		fi
-		wget "https://cdn.altv.mp/$dlType/$localBranch/x64_linux/${file}?build=$localBuild" -U 'AltPublicAgent' -P "$outDir/" -O "$file" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+		if [[ ! -e "$outDir/" ]]; then
+			mkdir -p "$outDir/"
+		fi
+		wget "https://cdn.altv.mp/$dlType/$localBranch/x64_linux/${file}?build=$localBuild" -U 'AltPublicAgent' -O "$file" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		if [ ! -e "$file" ]; then
 			continue
 		fi
