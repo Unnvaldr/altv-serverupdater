@@ -34,8 +34,9 @@ function fetchUpdateData() {
 		exit
 	}
 	try {
-		$updateData2=(Invoke-RestMethod -Uri "https://cdn.altv.mp/node-module/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
-		$updateData2.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,'node-module') }
+		$moduleName = if($script:updateData.latestBuildNumber -ge 1232) { 'js-module' } else { 'node-module' }
+		$updateData2=(Invoke-RestMethod -Uri "https://cdn.altv.mp/$moduleName/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
+		$updateData2.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,"$moduleName") }
 	} catch {
 		printAndLog "Failed to check for node-module update`n" 'WARN'
 	}
@@ -66,6 +67,15 @@ function validateFiles() {
 			printAndLog "done`n" 'APP'
 		} else {
 			printAndLog "failed`n" 'APP'
+		}
+	}
+	if($script:updateData.latestBuildNumber -ge 1232) {
+		printAndLog "Found old node-module files, removing . . .`n"
+		if(Test-Path -Path "libnode.dll") {
+			Remove-Item -Path "libnode.dll" -Force
+		}
+		if(Test-Path -Path "modules/node-module.dll") {
+			Remove-Item -Path "modules/node-module.dll" -Force
 		}
 	}
 	if($localBuild -ne $remoteBuild) {

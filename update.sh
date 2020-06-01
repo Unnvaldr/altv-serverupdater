@@ -45,12 +45,13 @@ fetchUpdateData() {
 	updateTmp2=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp2
 	updateTmp3=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp3
 	echo $updateData | jq -c "$(printf "$str" 'server')" > $updateTmp
-	updateData2=$(curl -s "https://cdn.altv.mp/node-module/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
+	moduleName=$([ $(echo "${updateData}" | jq -r '.latestBuildNumber') -ge 1232 ]) && echo 'js-module' || echo 'node-module';
+	updateData2=$(curl -s "https://cdn.altv.mp/$moduleName/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
 	echo $updateData2 | jq -e '.' >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
-		printAndLog "Failed to check for node-module update\n" 'WARN'
+		printAndLog "Failed to check for $moduleName update\n" 'WARN'
 	else
-		echo $updateData2 | jq -c "$(printf "$str" 'node-module')" > $updateTmp2
+		echo $updateData2 | jq -c "$(printf "$str" "$moduleName")" > $updateTmp2
 		unset updateData2
 	fi
 	updateData3=$(curl -s "https://cdn.altv.mp/coreclr-module/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
@@ -90,6 +91,15 @@ validateFiles() {
 		printAndLog "Server file start.sh not found, creating one . . . "
 		printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server "$@"\n' > 'start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
 		chmod +x 'start.sh' || printAndLog "[$(date +%T)][Error] Failed to add execution permissions to file start.sh\e[39m\n" 'ERR'
+	fi
+	if [ $(echo "${updateData}" | jq -r '.latestBuildNumber') -ge 1232 ]; then
+		printAndLog "Found old node-module files, removing . . .\n"
+		if [ -e 'libnode.so.72' ]; then
+			rm -f 'libnode.so.72'
+		fi
+		if [ -e 'modules/libnode-module.so' ]; then
+			rm -f 'modules/libnode-module.so'
+		fi
 	fi
 	if [ $localBuild -ne $remoteBuild ]; then
 		printAndLog "Server files update is available\n"
