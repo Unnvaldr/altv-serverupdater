@@ -93,12 +93,16 @@ validateFiles() {
 		chmod +x 'start.sh' || printAndLog "[$(date +%T)][Error] Failed to add execution permissions to file start.sh\e[39m\n" 'ERR'
 	fi
 	if [ $(echo "${updateData}" | jq -r '.latestBuildNumber') -ge 1232 ]; then
-		printAndLog "Found old node-module files, removing . . .\n"
-		if [ -e 'libnode.so.72' ]; then
-			rm -f 'libnode.so.72'
-		fi
-		if [ -e 'modules/libnode-module.so' ]; then
-			rm -f 'modules/libnode-module.so'
+		nodeExist=$([ -e 'libnode.so.72' ] && echo true || echo false)
+		moduleExist=$([ -e 'modules/libnode-module.so' ] && echo true || echo false)
+		if [[ "$nodeExist" == true || "$moduleExist" == true ]]; then
+			printAndLog "Found old node-module files, removing . . .\n"
+			if [[ "$nodeExist" == true ]]; then
+				rm -f 'libnode.so.72'
+			fi
+			if [[ "$moduleExist" == true ]]; then
+				rm -f 'modules/libnode-module.so'
+			fi
 		fi
 	fi
 	if [ $localBuild -ne $remoteBuild ]; then
@@ -121,7 +125,7 @@ downloadFiles() {
 		dlType="$(echo "${updateData}" | jq -r ".hashList.\"$file\"[1]")"
 		outDir="$(dirname $file)"
 		printAndLog "Downloading file $file . . . "
-		if [[ "$noBackup" == 'false' && -e "$file" ]]; then
+		if [[ "$noBackup" == false && -e "$file" ]]; then
 			mv "$file" "$file.old"
 		fi
 		if [[ ! -e "$outDir/" ]]; then

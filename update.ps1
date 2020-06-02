@@ -70,12 +70,16 @@ function validateFiles() {
 		}
 	}
 	if($script:updateData.latestBuildNumber -ge 1232) {
-		printAndLog "Found old node-module files, removing . . .`n"
-		if(Test-Path -Path "libnode.dll") {
-			Remove-Item -Path "libnode.dll" -Force
-		}
-		if(Test-Path -Path "modules/node-module.dll") {
-			Remove-Item -Path "modules/node-module.dll" -Force
+		$nodeExist = Test-Path -Path "libnode.dll"
+		$moduleExist = Test-Path -Path "modules/node-module.dll"
+		if($nodeExist -or $moduleExist) {
+			printAndLog "Found old node-module files, removing . . .`n"
+			if($nodeExist) {
+				Remove-Item -Path "libnode.dll" -Force >$null
+			}
+			if($moduleExist) {
+				Remove-Item -Path "modules/node-module.dll" -Force >$null
+			}
 		}
 	}
 	if($localBuild -ne $remoteBuild) {
