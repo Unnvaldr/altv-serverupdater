@@ -45,7 +45,7 @@ fetchUpdateData() {
 	updateTmp2=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp2
 	updateTmp3=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp3
 	echo $updateData | jq -c "$(printf "$str" 'server')" > $updateTmp
-	moduleName=$([ $(echo "${updateData}" | jq -r '.latestBuildNumber') -ge 1232 ]) && echo 'js-module' || echo 'node-module';
+	moduleName=$([ $(echo "${updateData}" | jq -r '.latestBuildNumber') -ge 1232 ] && echo 'js-module' || echo 'node-module');
 	updateData2=$(curl -s "https://cdn.altv.mp/$moduleName/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
 	echo $updateData2 | jq -e '.' >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
