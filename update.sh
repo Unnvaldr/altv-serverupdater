@@ -275,7 +275,8 @@ validateFiles() {
   updateCfg=$([[ -e 'update.cfg' ]] && cat 'update.cfg' || printf '{"branch":"release","modules":["js-module"]}' | jq '.')
   localBranch=$(echo "$updateCfg" | jq -r '.branch')
   [[ ! -n "$localBranch" || "$localBranch" != 'release' && "$localBranch" != 'rc' && "$localBranch" != 'dev' ]] && localBranch='release'
-  modules=($(echo "$updateCfg" | jq -r '.modules' | tr -d '[],"'))
+  modules=($(echo "$updateCfg" | jq -r '.modules // ""' | tr -d '[],"'))
+  [[ ! -n "$modules" ]] && modules=('js-module')
   fetchUpdateData
   localBuild="$(echo "$updateCfg" | jq -r 'if .build == null then empty else .build end')"
   [[ -z $localBuild || $localBuild == "-1" ]] && localBuild=$remoteBuild

@@ -219,6 +219,7 @@ $updateCfg=if(Test-Path 'update.cfg') { $(Get-Content 'update.cfg' | ConvertFrom
 $localBranch=$updateCfg.branch
 if(((-not $localBranch) -or ($localBranch -ne 'release')) -and ($localBranch -ne 'rc') -and ($localBranch -ne 'dev')) { $localBranch='release' }
 $modules=$updateCfg.modules
+if(-not $modules) { $modules=@('js-module') }
 fetchUpdateData
 $remoteBuild=$updateData.latestBuildNumber
 if($updateData.latestBuildNumber -eq -1) { $remoteBuild=$updateData.version }
