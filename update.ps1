@@ -46,37 +46,6 @@ function semVerCmp($verA, $verB) {
   }
   return 0
 }
-# function fetchUpdateData() {
-#   $hashTable=@{}
-#   try {
-#     $script:updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
-#     $script:updateData.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,'server') }
-#   } catch {
-#     printAndLog "Failed to check for update, try again later`n" 'ERR'
-#     exit 1
-#   }
-#   try {
-#     $moduleName=if(($script:updateData.latestBuildNumber -eq -1) -or ($script:updateData.latestBuildNumber -ge 1232)) { 'js-module' } else { 'node-module' }
-#     $updateData2=(Invoke-RestMethod -Uri "https://cdn.altv.mp/$moduleName/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
-#     $updateData2.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,"$moduleName") }
-#   } catch {
-#     printAndLog "Failed to check for node-module update`n" 'WARN'
-#   }
-#   try {
-#     $updateData3=(Invoke-RestMethod -Uri "https://cdn.altv.mp/coreclr-module/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
-#     $updateData3.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value, 'coreclr-module') }
-#     if(!$hashTable.Contains('AltV.Net.Host.dll')) {
-#       $hashTable['AltV.Net.Host.dll']=@('0'.PadRight(39, '0'), 'coreclr-module')
-#       $hashTable['AltV.Net.Host.runtimeconfig.json']=@('0'.PadRight(39, '0'), 'coreclr-module')
-#     }
-#     if(!$hashTable.Contains('modules/csharp-module.dll')) {
-#       $hashTable['modules/csharp-module.dll'] = @('0'.PadRight(39, '0'), 'coreclr-module')
-#     }
-#   } catch {
-#     printAndLog "Failed to check for csharp-module update: $($_)`n" 'WARN'
-#   }
-#   $script:updateData.hashList=[pscustomobject]$hashTable
-# }
 function fetchUpdateData() {
   $hashTable=@{}
   try {
@@ -114,19 +83,6 @@ function validateFiles() {
       $script:files+=$file
     }
   }
-  # if(!(Test-Path -Path "start.ps1")) {
-  #   printAndLog "Server file start.ps1 not found, creating one . . . "
-  #   if(-not $dryRun) {
-  #     $result=(New-Item -Path 'start.ps1' -Value "`$Host.UI.RawUI.BackgroundColor='black'`n`$Host.UI.RawUI.ForegroundColor='gray'`n.\altv-server.exe `$args`n" -Force)
-  #     if($result) {
-  #       printAndLog "done`n" 'APP'
-  #     } else {
-  #       printAndLog "failed`n" 'APP'
-  #     }
-  #   } else {
-  #     printAndLog "done`n" 'APP'
-  #   }
-  # }
   if(!(Test-Path -Path "server.cfg")) {
     printAndLog "Server file server.cfg not found, creating one . . . "
     if(-not $dryRun) {

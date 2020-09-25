@@ -77,49 +77,6 @@ semVerCmp() {
   done
   echo 0 && return 0
 }
-# fetchUpdateData() {
-#   updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
-#   echo $updateData | jq -e '.' >/dev/null 2>&1
-#   if [ $? -ne 0 ]; then
-#     printAndLog "Failed to check for update, try again later\n" 'ERR'
-#     exit 1
-#   fi
-#   str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
-#   updateTmp=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp 
-#   updateTmp2=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp2
-#   updateTmp3=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp3
-#   echo $updateData | jq -c "$(printf "$str" 'server')" > $updateTmp
-#   moduleName=$([ $(echo "$updateData" | jq -r '.latestBuildNumber') -eq -1 -o $(echo "$updateData" | jq -r '.latestBuildNumber') -ge 1232 ] && echo 'js-module' || echo 'node-module');
-#   updateData2=$(curl -s "https://cdn.altv.mp/$moduleName/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
-#   echo $updateData2 | jq -e '.' >/dev/null 2>&1
-#   if [ $? -ne 0 ]; then
-#     printAndLog "Failed to check for $moduleName update\n" 'WARN'
-#   else
-#     echo $updateData2 | jq -c "$(printf "$str" "$moduleName")" > $updateTmp2
-#     unset updateData2
-#   fi
-#   updateData3=$(curl -s "https://cdn.altv.mp/coreclr-module/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
-#   echo $updateData3 | jq -e '.' >/dev/null 2>&1
-#   if [ $? -ne 0 ]; then
-#     printAndLog "Failed to check for csharp-module update\n" 'WARN'
-#   else
-#     if [[ $(echo $updateData3 | jq -c '.hashList | has("AltV.Net.Host.dll")') == false ]]; then
-#       updateData3=$(echo $updateData3 | jq '.hashList |= . + {"AltV.Net.Host.dll":"'$(printf "%0.s0" {1..40})'"}')
-#       updateData3=$(echo $updateData3 | jq '.hashList |= . + {"AltV.Net.Host.runtimeconfig.json":"'$(printf "%0.s0" {1..40})'"}')
-#     fi
-#     if [[ $(echo $updateData3 | jq -c '.hashList | has("modules/libcsharp-module.so")') == false ]]; then
-#       updateData3=$(echo $updateData3 | jq '.hashList |= . + {"modules/libcsharp-module.so":"'$(printf "%0.s0" {1..40})'"}')
-#     fi
-#     echo $updateData3 | jq -c "$(printf "$str" 'coreclr-module')" > $updateTmp3
-#     unset updateData3
-#   fi
-#   updateData=$(jq -s '.[0].latestBuildNumber as $b | .[0].version as $c | reduce .[] as $x ({}; . * $x) | .latestBuildNumber=$b | .version=$c' $updateTmp $updateTmp2 $updateTmp3)
-#   rm $updateTmp
-#   rm $updateTmp2
-#   rm $updateTmp3
-#   remoteBuild="$(echo "$updateData" | jq -r '.latestBuildNumber')"
-#   [[ $remoteBuild -eq -1 ]] && remoteBuild=$(echo "$updateData" | jq -r '.version')
-# }
 fetchUpdateData() {
   updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
   echo $updateData | jq -e '.' >/dev/null 2>&1
@@ -168,15 +125,6 @@ validateFiles() {
       files+=("$file")
     fi
   done
-    # if [ ! -e 'start.sh' ]; then
-    #   printAndLog "Server file start.sh not found, creating one . . . "
-    #   if [[ "$dryRun" == false ]]; then
-    #       printf '#!/bin/bash\nBASEDIR=$(dirname $0)\nexport LD_LIBRARY_PATH=${BASEDIR}\n./altv-server "$@"\n' > 'start.sh' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
-    #       chmod +x 'start.sh' || printAndLog "[$(date +%T)][Error] Failed to add execution permissions to file start.sh\e[39m\n" 'ERR'
-    #   else
-    #       printAndLog 'done\n' 'APP'
-    #   fi
-    # fi
     if [ ! -e 'server.cfg' ]; then
       printAndLog "Server file server.cfg not found, creating one . . . "
       if [[ "$dryRun" == false ]]; then
