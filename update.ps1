@@ -55,7 +55,7 @@ function semVerCmp($verA, $verB) {
 #     $script:updateData.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,'server') }
 #   } catch {
 #     printAndLog "Failed to check for update, try again later`n" 'ERR'
-#     exit
+#     exit 1
 #   }
 #   try {
 #     $moduleName=if(($script:updateData.latestBuildNumber -eq -1) -or ($script:updateData.latestBuildNumber -ge 1232)) { 'js-module' } else { 'node-module' }
@@ -86,7 +86,7 @@ function fetchUpdateData() {
     $script:updateData.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,'server') }
   } catch {
     printAndLog "Failed to check for update, try again later`n" 'ERR'
-    exit
+    exit 1
   }
   foreach($moduleName in $modules) {
     try {

@@ -79,7 +79,7 @@ semVerCmp() {
 #   echo $updateData | jq -e '.' >/dev/null 2>&1
 #   if [ $? -ne 0 ]; then
 #     printAndLog "Failed to check for update, try again later\n" 'ERR'
-#     exit
+#     exit 1
 #   fi
 #   str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
 #   updateTmp=$(mktemp '/tmp/update.sh.XXX') && echo '{}' > $updateTmp 
@@ -122,7 +122,7 @@ fetchUpdateData() {
   echo $updateData | jq -e '.' >/dev/null 2>&1
   if [ $? -ne 0 ]; then
     printAndLog "Failed to check for update, try again later\n" 'ERR'
-    exit
+    exit 1
   fi
   str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
   local updateTmp=($(mktemp '/tmp/update.sh.XXX'))
