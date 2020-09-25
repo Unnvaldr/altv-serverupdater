@@ -13,17 +13,15 @@
 Param([Alias("no-logfile")][Switch]$noLogFile, [Alias("no-backup")][Switch]$noBackup, [Alias("dry-run")][Switch]$dryRun, [Switch]$silent)
 [System.Collections.ArrayList]$files=@()
 function printAndLog($str, $type) {
-  if(-not $silent) {
-    $date=(Get-Date -UFormat '%T')
-    if($type -eq 'ERR') {
-      "[$date][Error] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline -ForegroundColor 'Red'
-    } elseif($type -eq 'WARN') {
-      "[$date][Warning] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline -ForegroundColor 'Yellow'
-    } elseif($type -eq 'APP') {
-      "$str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline
-    } else {
-      "[$date] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | Write-Host -NoNewline
-    }
+  $date=(Get-Date -UFormat '%T')
+  if($type -eq 'ERR') {
+    "[$date][Error] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | %{if(-not $silent) { $_ | Write-Host -NoNewline } else { $_ > $null }}
+  } elseif($type -eq 'WARN') {
+    "[$date][Warning] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | %{if(-not $silent) { $_ | Write-Host -NoNewline } else { $_ > $null }}
+  } elseif($type -eq 'APP') {
+    "$str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | %{if(-not $silent) { $_ | Write-Host -NoNewline } else { $_ > $null }}
+  } else {
+    "[$date] $str" | %{if($noLogFile){$_}else{$_|Add-Content -Path 'update.log' -NoNewline -PassThru}} | %{if(-not $silent) { $_ | Write-Host -NoNewline } else { $_ > $null }}
   }
 }
 function semVerCmp($verA, $verB) {

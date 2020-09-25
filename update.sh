@@ -30,15 +30,18 @@ done
 files=()
 printAndLog() {
   if [[ "$silent" == false ]]; then
-    if [ "$2" = 'ERR' ]; then
-      printf "\e[91m[$(date +%T)][Error] $1\e[39m" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
-    elif [ "$2" = 'WARN' ]; then
-      printf "\e[93m[$(date +%T)][Warning] $1\e[39m" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
-    elif [ "$2" = 'APP' ]; then
-      printf "$1" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
-    else
-      printf "[$(date +%T)] $1" |& ([ $noLogFile != true ] && tee -a 'update.log' || cat)
-    fi
+    outFd=1
+  else
+    exec {outFd}>/dev/null
+  fi
+  if [ "$2" = 'ERR' ]; then
+    printf "\e[91m[$(date +%T)][Error] $1\e[39m" |& ([ $noLogFile != true ] && tee -a 'update.log' >& $outFd || cat)
+  elif [ "$2" = 'WARN' ]; then
+    printf "\e[93m[$(date +%T)][Warning] $1\e[39m" |& ([ $noLogFile != true ] && tee -a 'update.log' >& $outFd || cat)
+  elif [ "$2" = 'APP' ]; then
+    printf "$1" |& ([ $noLogFile != true ] && tee -a 'update.log' >& $outFd || cat)
+  else
+    printf "[$(date +%T)] $1" |& ([ $noLogFile != true ] && tee -a 'update.log' >& $outFd || cat)
   fi
 }
 semVerCmp() {
