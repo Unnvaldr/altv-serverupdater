@@ -50,8 +50,8 @@ semVerCmp() {
   local matchB=(${2##v})
   for i in {1..5}
   do
-    matchA+=(`echo ${1##v} | pcregrep "-o$i" $semVerRegex`)
-    matchB+=(`echo ${2##v} | pcregrep "-o$i" $semVerRegex`)
+    matchA+=$(`echo ${1##v} | pcregrep "-o$i" $semVerRegex`)
+    matchB+=$(`echo ${2##v} | pcregrep "-o$i" $semVerRegex`)
   done
   if [ ${1##v} == ${2##v} ]; then
     echo 0 && return 0
