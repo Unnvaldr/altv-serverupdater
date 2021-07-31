@@ -46,6 +46,9 @@ function semVerCmp($verA, $verB) {
   }
   return 0
 }
+function getFileHash($file) {
+  return (Get-FileHash -Path "$file" -Algorithm 'SHA1').Hash
+}
 function fetchUpdateData() {
   $hashTable=@{}
   try {
@@ -73,7 +76,7 @@ function validateFiles() {
   $script:files.Clear()
   $hashList=$script:updateData.hashList
   foreach($file in ($hashList | Get-Member -MemberType NoteProperty | Select -ExpandProperty Name)) {
-    if(!(Test-Path -Path "$file") -or ((Get-FileHash -Path "$file" -Algorithm 'SHA1').Hash.ToLower() -ne $hashList."$file"[0])) {
+    if(-not (Test-Path -Path "$file") -or ('0'.PadRight(39, '0') -ne $hashList."$file"[0] -and (getFileHash "$file") -ne $hashList."$file"[0])) {
       $script:files+=$file
     }
   }

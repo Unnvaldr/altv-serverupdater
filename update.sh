@@ -77,6 +77,10 @@ semVerCmp() {
   done
   echo 0 && return 0
 }
+getFileHash() {
+  local file=(${1##v})
+  sha1sum "$file" | awk '{print $1}'
+}
 fetchUpdateData() {
   updateData=$(curl -s "https://cdn.altv.mp/server/$localBranch/x64_linux/update.json" -A 'AltPublicAgent')
   echo $updateData | jq -e '.' >/dev/null 2>&1
@@ -115,7 +119,7 @@ validateFiles() {
   files=()
   for file in $(echo $updateData | jq -r '.hashList | keys[]')
   do
-    if [[ ! -e "$file" || $(sha1sum "$file" | awk '{print $1}') != "$(echo "$updateData" | jq -r ".hashList.\"$file\"[0]")" ]]; then
+    if [[ ! -e "$file" || ("$(printf "%0.s0" {1..40})" != "$(echo "$updateData" | jq -r ".hashList.\"$file\"[0]")" && $(getFileHash "$file") != "$(echo "$updateData" | jq -r ".hashList.\"$file\"[0]")") ]]; then
       files+=("$file")
     fi
   done
