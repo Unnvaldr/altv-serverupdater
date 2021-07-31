@@ -84,6 +84,9 @@ fetchUpdateData() {
     printAndLog "Failed to check for update, try again later\n" 'ERR'
     exit 1
   fi
+  if [[ $(echo $updateData | jq -c '.hashList | has("data/clothes.bin")') == false ]]; then
+    updateData=$(echo $updateData | jq '.hashList |= . + {"data/clothes.bin":"'$(printf "%0.s0" {1..40})'"}')
+  fi
   str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
   local updateTmp=($(mktemp '/tmp/update.sh.XXX'))
   echo '{}' > ${updateTmp[0]}

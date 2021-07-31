@@ -51,6 +51,9 @@ function fetchUpdateData() {
   try {
     $script:updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
     $script:updateData.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,'server') }
+    if(!$hashTable.Contains('data/clothes.bin')) {
+      $hashTable['data/clothes.bin']=@('0'.PadRight(39, '0'), 'server')
+    }
   } catch {
     printAndLog "Failed to check for update, try again later`n" 'ERR'
     exit 1
