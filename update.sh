@@ -99,15 +99,6 @@ fetchUpdateData() {
     if [ $? -ne 0 ]; then
       printAndLog "Failed to check for $moduleName update\n" 'WARN'
     else
-      if [[ "$moduleName" == 'csharp-module' ]]; then
-        if [[ $(echo $updateData | jq -c '.hashList | has("AltV.Net.Host.dll")') == false ]]; then
-          updateData=$(echo $updateData | jq '.hashList |= . + {"AltV.Net.Host.dll":"'$(printf "%0.s0" {1..40})'"}')
-          updateData=$(echo $updateData | jq '.hashList |= . + {"AltV.Net.Host.runtimeconfig.json":"'$(printf "%0.s0" {1..40})'"}')
-        fi
-        if [[ $(echo $updateData | jq -c '.hashList | has("modules/libcsharp-module.so")') == false ]]; then
-          updateData=$(echo $updateData | jq '.hashList |= . + {"modules/libcsharp-module.so":"'$(printf "%0.s0" {1..40})'"}')
-        fi
-      fi
       updateTmp+=($(mktemp '/tmp/update.sh.XXX'))
       echo '{}' > "${updateTmp[${#updateTmp[@]} - 1]}"
       echo $updateData | jq -c "$(printf "$str" "$moduleName")" > "${updateTmp[${#updateTmp[@]} - 1]}"

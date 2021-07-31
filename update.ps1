@@ -60,15 +60,6 @@ function fetchUpdateData() {
       if($moduleName -eq 'csharp-module') { $moduleName='coreclr-module' }
       $updateData2=(Invoke-RestMethod -Uri "https://cdn.altv.mp/$moduleName/$localBranch/x64_win32/update.json" -UserAgent 'AltPublicAgent')
       $updateData2.hashList.psobject.properties | Foreach { $hashTable[$_.Name]=@($_.Value,"$moduleName") }
-      if($moduleName -eq 'coreclr-module') {
-        if(!$hashTable.Contains('AltV.Net.Host.dll')) {
-          $hashTable['AltV.Net.Host.dll']=@('0'.PadRight(39, '0'), 'coreclr-module')
-          $hashTable['AltV.Net.Host.runtimeconfig.json']=@('0'.PadRight(39, '0'), 'coreclr-module')
-        }
-        if(!$hashTable.Contains('modules/csharp-module.dll')) {
-          $hashTable['modules/csharp-module.dll'] = @('0'.PadRight(39, '0'), 'coreclr-module')
-        }
-      }
     } catch {
       printAndLog "Failed to check for $moduleName update`n" 'WARN'
     }
