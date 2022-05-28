@@ -88,13 +88,18 @@ fetchUpdateData() {
     printAndLog "Failed to check for update, try again later\n" 'ERR'
     exit 1
   fi
-  if [[ $(echo $updateData | jq -c '.hashList | has("data/clothes.bin")') == false ]]; then
-    updateData=$(echo $updateData | jq '.hashList |= . + {"data/clothes.bin":"'$(printf "%0.s0" {1..40})'"}')
-  fi
+  
+  dataUpdateData=$(curl -s "https://cdn.altv.mp/data/$localBranch/update.json" -A 'AltPublicAgent')
+  dataHashList=$(echo $dataUpdateData | jq '.hashList')
+
+  updateData=$(echo $updateData | jq $".hashList |= . + $dataHashList")
   str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
+  
   local updateTmp=($(mktemp '/tmp/update.sh.XXX'))
+
   echo '{}' > ${updateTmp[0]}
-  echo $updateData | jq -c "$(printf "$str" 'server')" > ${updateTmp[0]}
+  echo $updateData | jq -c "$(printf "$str" 'data')" > ${updateTmp[0]}
+
   for (( i=0; i < ${#modules[@]}; i++ ))
   do
     if [[ "${modules[$i]}" == 'csharp-module' ]]; then
@@ -189,6 +194,8 @@ validateFiles() {
     for file in ${files[@]}
     do
       dlType="$(echo "$updateData" | jq -r ".hashList.\"$file\"[1]")"
+      platform=$([ "$dlType" == "data" ] && echo "" || echo "x64_linux/")
+      updateData="$(echo $updateData | jq -r '.hashList."altv-server"[1] = "server"')"
       outDir="$(dirname $file)"
       printAndLog "Downloading file $file . . . "
       if [[ "$dryRun" == false ]]; then
@@ -198,7 +205,8 @@ validateFiles() {
         if [[ ! -e "$outDir/" ]]; then
           mkdir -p "$outDir/"
         fi
-        wget "https://cdn.altv.mp/$dlType/$localBranch/x64_linux/${file}?build=$localBuild" -U 'AltPublicAgent' -O "$file" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+
+        wget "https://cdn.altv.mp/$dlType/$localBranch/$platform${file}?build=$localBuild" -U 'AltPublicAgent' -O "$file" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
         if [ ! -e "$file" ]; then
           continue
         fi
