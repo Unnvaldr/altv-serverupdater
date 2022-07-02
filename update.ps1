@@ -62,9 +62,8 @@ function fetchUpdateData() {
   try {
     $script:updateData=(Invoke-RestMethod -Uri "https://cdn.altv.mp/server/$localBranch/x64_win32/update.json" -UserAgent "AltPublicAgent")
     $script:updateData.hashList.psobject.properties | %{ $hashTable[$_.Name]=@($_.Value, "server") }
-    if(-not $hashTable.Contains("data/clothes.bin")) {
-      $hashTable["data/clothes.bin"]=@('0'.PadRight(39, '0'), "server")
-    }
+    $updateDataTmp=(Invoke-RestMethod -Uri "https://cdn.altv.mp/data/$localBranch/update.json" -UserAgent "AltPublicAgent")
+    $updateDataTmp.hashList.psobject.properties | %{ $hashTable[$_.Name]=@($_.Value, "data") }
   } catch {
     printAndLog "Failed to check for update, try again later`n" "ERR"
     exit 1
@@ -140,6 +139,7 @@ function downloadFiles() {
   if($script:files.Count -eq 0) { return }
   foreach($file in $script:files) {
     $dlType=($updateData.hashList."$file"[1])
+    $platform=if($dlType -ne "data") { "/x64_win32" } else { "" }
     $outDir=(Split-Path -Path "$file" -Parent).Replace('/', '\')
     if($outDir -eq "") { $outDir='.' }
     printAndLog "Downloading file $file . . . "
@@ -151,7 +151,7 @@ function downloadFiles() {
         New-Item -Path "$outDir" -ItemType "Directory" -Force >$null
       }
       $ProgressPreference="SilentlyContinue"
-      $result=(Invoke-WebRequest -Uri "https://cdn.altv.mp/$dlType/$localBranch/x64_win32/${file}?build=$localBuild" -UserAgent "AltPublicAgent" -UseBasicParsing -OutFile "$file" -PassThru)
+      $result=(Invoke-WebRequest -Uri "https://cdn.altv.mp/$dlType/$localBranch$platform/${file}?build=$localBuild" -UserAgent "AltPublicAgent" -UseBasicParsing -OutFile "$file" -PassThru)
       $ProgressPreference="Continue"
       if($result.StatusCode -eq 200) {
         printAndLog "done`n" "APP"
