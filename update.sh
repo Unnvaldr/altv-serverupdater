@@ -134,116 +134,116 @@ validateFiles() {
       files+=("$file")
     fi
   done
-    if [ ! -e 'server.cfg' ]; then
-      printAndLog "Server file server.cfg not found, creating one . . . "
-      if [[ "$dryRun" == false ]]; then
-        printf 'name: "alt:V Server"\nhost: 0.0.0.0\nport: 7788\nplayers: 128\n#password: ultra-password\nannounce: false\n#token: YOUR_TOKEN\ngamemode: Freeroam\nwebsite: example.com\nlanguage: en\ndescription: "alt:V Sample Server"\nmodules: [\n  \n]\nresources: [\n  \n]\n' > 'server.cfg' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
-      else
-        printAndLog 'done\n' 'APP'
-      fi
-    fi
-    if [[ ! $localBuild =~ ^[0-9]+$ || $localBuild -ge 1232 ]]; then
-      local nodeExist=$([ -e 'libnode.so.72' ] && echo true || echo false)
-      local moduleExist=$([ -e 'modules/libnode-module.so' ] && echo true || echo false)
-      if [[ "$nodeExist" == true || "$moduleExist" == true ]]; then
-        printAndLog "Found old node-module files, removing . . . "
-        if [[ "$dryRun" == false ]]; then
-          local result1=true
-          local result2=true
-          if [[ "$nodeExist" == true ]]; then
-            rm -f 'libnode.so.72'
-            result1=$([[ "$?" -eq 0 ]] && echo true || echo false)
-          fi
-          if [[ "$moduleExist" == true ]]; then
-            rm -f 'modules/libnode-module.so'
-            result2=$([[ "$?" -eq 0 ]] && echo true || echo false)
-          fi
-          if [[ "$result1" == true && "$result2" == true ]]; then
-            printAndLog 'done\n' 'APP'
-          else
-            printAndLog 'failed\n' 'APP'
-          fi
-        else
-          printAndLog 'done\n' 'APP'
-        fi
-      fi
-    fi
-    if [ $localBuild != $remoteBuild ]; then
-      printAndLog "Server files update is available\n"
-    elif [ "${#files[@]}" -ne 0 ]; then
-      printAndLog "Server files are invalidated/corrupted, ${#files[@]} in total\n"
-    else
-      printAndLog "Server files are up-to-date, no action required\n"
-    fi
-
+  if [ ! -e 'server.cfg' ]; then
+    printAndLog "Server file server.cfg not found, creating one . . . "
     if [[ "$dryRun" == false ]]; then
-      localBuild=$remoteBuild
-      modulesTemp=""
-      for (( i=0; i < ${#modules[@]}; i++ ))
-      do
-        modulesTemp+="\"${modules[$i]}\""
-        if [ $(($i + 1)) -ne ${#modules[@]} ]; then
-          modulesTemp+=','
-        fi
-      done
-      if [[ $localBuild =~ ^[0-9]+$ ]]; then
-        printf '{"branch":"%s","build":%d,"modules":[%s]}' $localBranch $localBuild $modulesTemp | jq '.' > 'update.cfg'
-      else
-        printf '{"branch":"%s","build":"%s","modules":[%s]}' $localBranch $localBuild $modulesTemp | jq '.' > 'update.cfg'
-      fi
+      printf 'name: "alt:V Server"\nhost: 0.0.0.0\nport: 7788\nplayers: 128\n#password: ultra-password\nannounce: false\n#token: YOUR_TOKEN\ngamemode: Freeroam\nwebsite: example.com\nlanguage: en\ndescription: "alt:V Sample Server"\nmodules: [\n  \n]\nresources: [\n  \n]\n' > 'server.cfg' && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+    else
+      printAndLog 'done\n' 'APP'
     fi
-  }
-  downloadFiles() {
-    if [ "${#files[@]}" -eq 0 ]; then
-      return
-    fi
-    for file in ${files[@]}
-    do
-      dlType="$(echo "$updateData" | jq -r ".hashList.\"$file\"[1]")"
-      platform=$([ "$dlType" == "data" ] && echo "" || echo "x64_linux/")
-      updateData="$(echo $updateData | jq -r '.hashList."altv-server"[1] = "server"')"
-      outDir="$(dirname $file)"
-      printAndLog "Downloading file $file . . . "
+  fi
+  if [[ ! $localBuild =~ ^[0-9]+$ || $localBuild -ge 1232 ]]; then
+    local nodeExist=$([ -e 'libnode.so.72' ] && echo true || echo false)
+    local moduleExist=$([ -e 'modules/libnode-module.so' ] && echo true || echo false)
+    if [[ "$nodeExist" == true || "$moduleExist" == true ]]; then
+      printAndLog "Found old node-module files, removing . . . "
       if [[ "$dryRun" == false ]]; then
-        if [[ "$noBackup" == false && -e "$file" ]]; then
-          mv "$file" "$file.old"
+        local result1=true
+        local result2=true
+        if [[ "$nodeExist" == true ]]; then
+          rm -f 'libnode.so.72'
+          result1=$([[ "$?" -eq 0 ]] && echo true || echo false)
         fi
-        if [[ ! -e "$outDir/" ]]; then
-          mkdir -p "$outDir/"
+        if [[ "$moduleExist" == true ]]; then
+          rm -f 'modules/libnode-module.so'
+          result2=$([[ "$?" -eq 0 ]] && echo true || echo false)
         fi
-
-        wget "https://cdn.altv.mp/$dlType/$localBranch/$platform${file}?build=$localBuild" -U 'AltPublicAgent' -O "$file" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
-        if [ ! -e "$file" ]; then
-          continue
-        fi
-        if [ -e "$file.old" ]; then
-          chmod --reference="$file.old" "$file" || printAndLog "Failed to copy chmod to file $file\n" 'ERR'
-          chmod -x "$file.old" || printAndLog "Failed to remove execution permissions from file $file.old\n" 'ERR'
+        if [[ "$result1" == true && "$result2" == true ]]; then
+          printAndLog 'done\n' 'APP'
         else
-          chmod +x "$file" || printAndLog "Failed to add execution permissions to file $file\n" 'ERR'
+          printAndLog 'failed\n' 'APP'
         fi
       else
         printAndLog 'done\n' 'APP'
+      fi
+    fi
+  fi
+  if [ $localBuild != $remoteBuild ]; then
+    printAndLog "Server files update is available\n"
+  elif [ "${#files[@]}" -ne 0 ]; then
+    printAndLog "Server files are invalidated/corrupted, ${#files[@]} in total\n"
+  else
+    printAndLog "Server files are up-to-date, no action required\n"
+  fi
+
+  if [[ "$dryRun" == false ]]; then
+    localBuild=$remoteBuild
+    modulesTemp=""
+    for (( i=0; i < ${#modules[@]}; i++ ))
+    do
+      modulesTemp+="\"${modules[$i]}\""
+      if [ $(($i + 1)) -ne ${#modules[@]} ]; then
+        modulesTemp+=','
       fi
     done
-    validateFiles
-  }
+    if [[ $localBuild =~ ^[0-9]+$ ]]; then
+      printf '{"branch":"%s","build":%d,"modules":[%s]}' $localBranch $localBuild $modulesTemp | jq '.' > 'update.cfg'
+    else
+      printf '{"branch":"%s","build":"%s","modules":[%s]}' $localBranch $localBuild $modulesTemp | jq '.' > 'update.cfg'
+    fi
+  fi
+}
+downloadFiles() {
+  if [ "${#files[@]}" -eq 0 ]; then
+    return
+  fi
+  for file in ${files[@]}
+  do
+    dlType="$(echo "$updateData" | jq -r ".hashList.\"$file\"[1]")"
+    platform=$([ "$dlType" == "data" ] && echo "" || echo "x64_linux/")
+    updateData="$(echo $updateData | jq -r '.hashList."altv-server"[1] = "server"')"
+    outDir="$(dirname $file)"
+    printAndLog "Downloading file $file . . . "
+    if [[ "$dryRun" == false ]]; then
+      if [[ "$noBackup" == false && -e "$file" ]]; then
+        mv "$file" "$file.old"
+      fi
+      if [[ ! -e "$outDir/" ]]; then
+        mkdir -p "$outDir/"
+      fi
 
-  if [ $noLogFile != true ]; then
-    truncate -s 0 'update.log'
-  fi
-  if [[ ( "$dryRun" == false ) && ( ! -e 'update.cfg' ) ]]; then
-    printf '{"branch":"release","modules":["js-module"]}' | jq '.' > 'update.cfg'
-  fi
-  updateCfg=$([[ -e 'update.cfg' ]] && cat 'update.cfg' || printf '{"branch":"release","modules":["js-module"]}' | jq '.')
-  localBranch=$(echo "$updateCfg" | jq -r '.branch')
-  [[ ! -n "$localBranch" || "$localBranch" != 'release' && "$localBranch" != 'rc' && "$localBranch" != 'dev' ]] && localBranch='release'
-  modules=($(echo "$updateCfg" | jq -r '.modules // ""' | tr -d '[],"'))
-  [[ ! -n "$modules" ]] && modules=('js-module')
-  fetchUpdateData
-  localBuild="$(echo "$updateCfg" | jq -r 'if .build == null then empty else .build end')"
-  [[ -z $localBuild || $localBuild == "-1" ]] && localBuild=$remoteBuild
-  printAndLog "Current version: $localBuild\n"
-  printAndLog "Latest version: $remoteBuild\n"
+      wget "https://cdn.altv.mp/$dlType/$localBranch/$platform${file}?build=$localBuild" -U 'AltPublicAgent' -O "$file" -N -q && printAndLog 'done\n' 'APP' || printAndLog 'failed\n' 'APP'
+      if [ ! -e "$file" ]; then
+        continue
+      fi
+      if [ -e "$file.old" ]; then
+        chmod --reference="$file.old" "$file" || printAndLog "Failed to copy chmod to file $file\n" 'ERR'
+        chmod -x "$file.old" || printAndLog "Failed to remove execution permissions from file $file.old\n" 'ERR'
+      else
+        chmod +x "$file" || printAndLog "Failed to add execution permissions to file $file\n" 'ERR'
+      fi
+    else
+      printAndLog 'done\n' 'APP'
+    fi
+  done
   validateFiles
-  downloadFiles
+}
+
+if [ $noLogFile != true ]; then
+  truncate -s 0 'update.log'
+fi
+if [[ ( "$dryRun" == false ) && ( ! -e 'update.cfg' ) ]]; then
+  printf '{"branch":"release","modules":["js-module"]}' | jq '.' > 'update.cfg'
+fi
+updateCfg=$([[ -e 'update.cfg' ]] && cat 'update.cfg' || printf '{"branch":"release","modules":["js-module"]}' | jq '.')
+localBranch=$(echo "$updateCfg" | jq -r '.branch')
+[[ ! -n "$localBranch" || "$localBranch" != 'release' && "$localBranch" != 'rc' && "$localBranch" != 'dev' ]] && localBranch='release'
+modules=($(echo "$updateCfg" | jq -r '.modules // ""' | tr -d '[],"'))
+[[ ! -n "$modules" ]] && modules=('js-module')
+fetchUpdateData
+localBuild="$(echo "$updateCfg" | jq -r 'if .build == null then empty else .build end')"
+[[ -z $localBuild || $localBuild == "-1" ]] && localBuild=$remoteBuild
+printAndLog "Current version: $localBuild\n"
+printAndLog "Latest version: $remoteBuild\n"
+validateFiles
+downloadFiles
