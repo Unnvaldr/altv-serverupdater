@@ -88,17 +88,23 @@ fetchUpdateData() {
     printAndLog "Failed to check for update, try again later\n" 'ERR'
     exit 1
   fi
-  
-  dataUpdateData=$(curl -s "https://cdn.altv.mp/data/$localBranch/update.json" -A 'AltPublicAgent')
-  dataHashList=$(echo $dataUpdateData | jq '.hashList')
 
-  updateData=$(echo $updateData | jq $".hashList |= . + $dataHashList")
   str='. | to_entries | map(if .key=="hashList" then {"key":.key} + {"value":(.value | to_entries | map(. + {"value":[.value, "%s"]}) | from_entries)} else . end) | from_entries'
   
   local updateTmp=($(mktemp '/tmp/update.sh.XXX'))
 
   echo '{}' > ${updateTmp[0]}
-  echo $updateData | jq -c "$(printf "$str" 'data')" > ${updateTmp[0]}
+  echo $updateData | jq -c "$(printf "$str" 'server')" > ${updateTmp[0]}
+
+  updateData=$(curl -s "https://cdn.altv.mp/data/$localBranch/update.json" -A 'AltPublicAgent')
+    if [ $? -ne 0 ]; then
+    printAndLog "Failed to check for update, try again later\n" 'ERR'
+    exit 1
+  fi
+
+  updateTmp+=($(mktemp '/tmp/update.sh.XXX'))
+  echo '{}' > "${updateTmp[${#updateTmp[@]} - 1]}"
+  echo $updateData | jq -c "$(printf "$str" 'data')" > "${updateTmp[${#updateTmp[@]} - 1]}"
 
   for (( i=0; i < ${#modules[@]}; i++ ))
   do
